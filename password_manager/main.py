@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox as msgbox
 from tkinter import END
 import password_generator as pass_gen
+import json
 
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
@@ -22,11 +23,51 @@ def save_password():
                                                                         f"\nLogin: {login}\nPassword: {password}"
                                                                         f"\nIs it okay to save?")
         if is_continue_to_save:
-            with open("data.txt", "a") as file:
-                file.write(f"\n{website} | {login} | {password}")
+
+            new_data = {
+                website:
+                    {
+                        "login": login,
+                        "password": password
+                    }
+            }
+
+            try:
+                with open("data.json", "r") as file:
+                    data = json.load(file)
+            except FileNotFoundError:
+                with open("data.json", "w") as file:
+                    json.dump(new_data, file, indent=4)
+            else:
+                data.update(new_data)
+                with open("data.json", "w") as file:
+                    json.dump(data, file, indent=4)
+            finally:
                 website_input.delete(0, END)
                 login_input.delete(0, END)
                 password_input.delete(0, END)
+
+
+# ---------------------------- PASSWORD SEARCHER ------------------------------- #
+def search_password():
+    website = website_input.get()
+
+    if website == "":
+        msgbox.showwarning(title="Search", message="Please insert a website name,"
+                                                   " for which you want to find your password")
+    else:
+        try:
+            with open("data.json", "r") as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            msgbox.showinfo(title="No saves!", message="You have not added any passwords yet.")
+        else:
+            if website in data:
+                found_credentials = data[website]
+                msgbox.showinfo(title=website, message=f"Your login is {found_credentials['login']}\n"
+                                                       f"Your password is {found_credentials['password']}")
+            else:
+                msgbox.showinfo(title=website, message="No details for that website exists.")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -41,8 +82,11 @@ canvas.grid(column=1, row=0)
 
 website_label = tk.Label(text="Website:")
 website_label.grid(column=0, row=1)
-website_input = tk.Entry(width=35)
-website_input.grid(column=1, columnspan=2, row=1, sticky="EW")
+website_input = tk.Entry(width=25)
+website_input.grid(column=1, row=1, sticky="EW")
+
+search_bn = tk.Button(text="Search", command=search_password, width=10)
+search_bn.grid(column=2, row=1, sticky="EW")
 
 login_label = tk.Label(text="Email/Username:")
 login_label.grid(column=0, row=2)
